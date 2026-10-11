@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tay Ninh GreenBus Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --forest:#0B3D2E; --forest2:#134D3A; --forest3:#1A6349;
+  --electric:#2ECC71; --edim:#1a7a44;
+  --gold:#F0A500; --sky:#3BBFCE; --danger:#E74C3C;
+  --bg:#F4F7F2; --panel:#FFFFFF; --text:#1A2820; --muted:#6B8070;
+  --border:#D4E0D8; --shadow:0 2px 12px rgba(11,61,46,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* NAV */
+.topnav{background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;flex-shrink:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Manrope',sans-serif}
+.brand-icon{width:32px;height:32px;background:var(--electric);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand-name{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.brand-sub{font-size:11px;color:rgba(255,255,255,.55)}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);cursor:pointer;transition:all .18s;font-family:'Manrope',sans-serif}
+.nav-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
+.nav-tab.active{color:var(--forest);background:var(--electric)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--electric);box-shadow:0 0 6px var(--electric);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-label{font-size:11px;color:rgba(255,255,255,.6)}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:290px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sidebar-section{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.sidebar-section:last-child{border-bottom:none}
+.section-label{font-family:'Manrope',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.scenario-pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Manrope',sans-serif;color:var(--muted)}
+.pill:hover{border-color:var(--electric);color:var(--edim)}
+.pill.active{border-color:var(--electric);background:var(--electric);color:#fff}
+.control-row{margin-bottom:12px}
+.control-row:last-child{margin-bottom:0}
+.ctrl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.ctrl-name{font-size:12px;font-weight:500;color:var(--text)}
+.ctrl-val{font-size:12px;font-weight:700;font-family:'Manrope',sans-serif;color:var(--edim);background:#edf8f3;padding:2px 7px;border-radius:4px}
+input[type=range]{width:100%;height:4px;-webkit-appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--electric);box-shadow:0 1px 4px rgba(46,204,113,.4)}
+.weight-list{display:flex;flex-direction:column;gap:8px}
+.weight-item{display:flex;align-items:center;gap:8px}
+.weight-badge{width:26px;height:18px;border-radius:4px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;flex-shrink:0}
+.weight-name{font-size:11px;color:var(--text);flex:1}
+.weight-bar-wrap{width:70px;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.weight-bar{height:100%;border-radius:3px;transition:width .4s}
+.route-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;margin-bottom:4px}
+.route-item:hover{background:var(--bg)}
+.route-item.selected{background:#edf8f3}
+.route-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.route-info{flex:1}
+.route-name{font-size:12px;font-weight:600;font-family:'Manrope',sans-serif}
+.route-meta{font-size:10px;color:var(--muted);margin-top:1px}
+.route-sl{font-size:11px;font-weight:700;font-family:'Manrope',sans-serif;padding:2px 6px;border-radius:4px;background:#edf8f3;color:var(--edim)}
+.run-btn{width:100%;padding:11px;background:var(--electric);color:var(--forest);border:none;border-radius:10px;font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.2px;margin-top:4px}
+.run-btn:hover{background:#27b864;transform:translateY(-1px);box-shadow:0 4px 12px rgba(46,204,113,.35)}
+.export-btn{width:100%;padding:8px;background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-weight:600;font-family:'Manrope',sans-serif;cursor:pointer;transition:all .15s;margin-top:6px}
+.export-btn:hover{border-color:var(--muted);color:var(--text)}
+
+/* CONTENT AREA */
+.content-area{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+
+/* MAP */
+.map-area{flex:1;position:relative;overflow:hidden;background:#0e2a20}
+.map-canvas{width:100%;height:100%;position:absolute;inset:0}
+.map-overlay-tl{position:absolute;top:14px;left:14px;display:flex;flex-direction:column;gap:6px;z-index:10}
+.map-btn{width:34px;height:34px;background:var(--panel);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;box-shadow:var(--shadow);transition:background .15s}
+.map-btn:hover{background:var(--bg)}
+.map-overlay-tr{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10}
+.map-legend{position:absolute;bottom:14px;left:14px;background:rgba(255,255,255,.93);backdrop-filter:blur(6px);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);z-index:10;min-width:140px}
+.legend-title{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.legend-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.legend-row:last-child{margin-bottom:0}
+.legend-line{width:22px;height:3px;border-radius:2px}
+.legend-dot-icon{width:10px;height:10px;border-radius:50%;border:2px solid white}
+.legend-text{font-size:11px;color:var(--text)}
+.map-tooltip{position:absolute;background:var(--forest);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;pointer-events:none;z-index:20;box-shadow:var(--shadow);display:none;min-width:160px}
+.map-tooltip.show{display:block}
+.tooltip-name{font-weight:700;font-family:'Manrope',sans-serif;margin-bottom:3px}
+.tooltip-row{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.7)}
+.tooltip-val{color:var(--electric);font-weight:600}
+.running-overlay{position:absolute;inset:0;background:rgba(11,61,46,.80);display:none;align-items:center;justify-content:center;z-index:30;flex-direction:column;gap:14px}
+.running-overlay.show{display:flex}
+.running-title{font-family:'Manrope',sans-serif;font-size:16px;font-weight:700;color:#fff}
+.running-sub{font-size:12px;color:rgba(255,255,255,.6)}
+.progress-wrap{width:260px;height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;background:var(--electric);border-radius:3px;width:0;transition:width .25s}
+
+/* RIGHT PANEL */
+.right-panel{width:0;overflow:hidden;transition:width .3s;background:var(--panel);border-left:1px solid var(--border);flex-shrink:0}
+.right-panel.open{width:240px}
+.rp-inner{width:240px;padding:16px;overflow-y:auto;height:100%}
+.rp-title{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;margin-bottom:12px;color:var(--forest)}
+.rp-close{float:right;cursor:pointer;color:var(--muted);font-size:16px;line-height:1}
+.rp-metric{margin-bottom:10px}
+.rp-metric-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.rp-metric-val{font-family:'Manrope',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.rp-metric-unit{font-size:11px;color:var(--muted);margin-left:2px}
+.rp-stop{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.rp-stop-line{display:flex;flex-direction:column;align-items:center}
+.rp-stop-circle{width:8px;height:8px;border-radius:50%;border:2px solid;flex-shrink:0;margin-top:2px}
+.rp-stop-tail{width:2px;flex:1;min-height:14px;margin-top:2px;opacity:.3}
+.rp-stop-name{font-size:11px;font-weight:600}
+.rp-stop-time{font-size:10px;color:var(--muted)}
+
+/* TABS CONTENT */
+.tab-content{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tab-content.active{display:flex}
+
+/* PARETO TAB */
+.pareto-wrap{flex:1;overflow:auto;padding:24px;background:var(--bg)}
+.pareto-header{margin-bottom:20px}
+.pareto-title{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;color:var(--forest);margin-bottom:4px}
+.pareto-sub{font-size:13px;color:var(--muted)}
+.pareto-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card{background:var(--panel);border-radius:12px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.chart-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.chart-canvas{width:100%;height:220px;display:block}
+.pareto-table{width:100%;border-collapse:collapse;font-size:12px}
+.pareto-table th{background:var(--forest);color:#fff;padding:8px 12px;text-align:left;font-family:'Manrope',sans-serif;font-size:11px;letter-spacing:.4px}
+.pareto-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.pareto-table tr:hover td{background:#f0f7f3}
+.pareto-table tr.best td{background:#edf8f3;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:'Manrope',sans-serif}
+.badge-green{background:#edf8f3;color:var(--edim)}
+.badge-gold{background:#fff8e6;color:#b07a00}
+.badge-blue{background:#e6f6f8;color:#1a8a96}
+
+/* SIM TAB */
+.sim-wrap{flex:1;overflow:auto;padding:24px;background:var(--bg)}
+.sim-header{margin-bottom:20px}
+.sim-title{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;color:var(--forest);margin-bottom:4px}
+.sim-sub{font-size:13px;color:var(--muted)}
+.sim-controls{background:var(--panel);border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border);display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.sim-ctrl{flex:1;min-width:140px}
+.sim-ctrl label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.sim-select{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:'Inter',sans-serif;background:var(--bg);cursor:pointer;outline:none}
+.sim-select:focus{border-color:var(--electric)}
+.sim-run-btn{padding:8px 20px;background:var(--electric);color:var(--forest);border:none;border-radius:8px;font-size:12px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sim-run-btn:hover{background:#27b864}
+.sim-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.sim-timeline{background:var(--panel);border-radius:12px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.sim-metrics{display:flex;flex-direction:column;gap:12px}
+.sim-metric-card{background:var(--panel);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.sim-metric-val{font-family:'Manrope',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.sim-metric-label{font-size:11px;color:var(--muted);margin-top:3px}
+.sim-metric-trend{font-size:11px;margin-top:4px;font-weight:600}
+.trend-up{color:var(--electric)}
+.trend-down{color:var(--danger)}
+.sim-events{background:var(--panel);border-radius:12px;padding:16px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.event-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.event-item:last-child{border-bottom:none}
+.event-time{font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;color:var(--muted);min-width:42px}
+.event-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.event-text{font-size:12px;line-height:1.4}
+
+/* REPORT TAB */
+.report-wrap{flex:1;overflow:auto;padding:24px;background:var(--bg)}
+.report-doc{max-width:760px;margin:0 auto;background:var(--panel);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.report-header{background:var(--forest);padding:32px 40px;color:#fff}
+.report-logo{font-size:28px;margin-bottom:8px}
+.report-title{font-family:'Manrope',sans-serif;font-size:22px;font-weight:800;line-height:1.2;margin-bottom:4px}
+.report-date{font-size:12px;color:rgba(255,255,255,.6);margin-top:8px}
+.report-body{padding:32px 40px}
+.report-section{margin-bottom:28px}
+.report-section-title{font-family:'Manrope',sans-serif;font-size:14px;font-weight:700;color:var(--forest);padding-bottom:6px;border-bottom:2px solid var(--electric);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--bg);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.kpi-val{font-family:'Manrope',sans-serif;font-size:24px;font-weight:800;color:var(--forest)}
+.kpi-label{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+.report-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}
+.report-table th{background:var(--forest);color:#fff;padding:9px 14px;text-align:left;font-size:11px;font-family:'Manrope',sans-serif;letter-spacing:.3px}
+.report-table td{padding:9px 14px;border-bottom:1px solid var(--border)}
+.report-table tr:last-child td{border-bottom:none}
+.report-table tr:nth-child(even) td{background:#f9fbf9}
+.report-bar-wrap{height:8px;background:var(--border);border-radius:4px;overflow:hidden;display:inline-block;width:80px;vertical-align:middle;margin-left:6px}
+.report-bar{height:100%;border-radius:4px}
+.co2-comparison{display:flex;gap:16px;margin-bottom:20px}
+.co2-item{flex:1;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--border)}
+.co2-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.co2-val{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800}
+.co2-bar-outer{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:8px}
+.co2-bar-inner{height:100%;border-radius:5px;transition:width 1s}
+.report-finding{background:#edf8f3;border-left:4px solid var(--electric);padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:10px;font-size:13px;line-height:1.6}
+.report-finding strong{color:var(--forest)}
+.report-actions{display:flex;gap:10px;padding:20px 40px;border-top:1px solid var(--border);background:var(--bg)}
+.action-btn{flex:1;padding:10px;border-radius:8px;font-size:12px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;transition:all .15s;border:none;text-align:center}
+.action-primary{background:var(--electric);color:var(--forest)}
+.action-primary:hover{background:#27b864}
+.action-secondary{background:transparent;color:var(--muted);border:1.5px solid var(--border)}
+.action-secondary:hover{border-color:var(--muted);color:var(--text)}
+
+/* BOTTOM BAR */
+.bottom-bar{height:68px;background:var(--forest);flex-shrink:0;display:flex;align-items:center;padding:0 20px;gap:0;overflow:hidden}
+.stat-block{flex:1;display:flex;flex-direction:column;align-items:center;padding:0 10px;border-right:1px solid rgba(255,255,255,.1)}
+.stat-block:last-child{border-right:none}
+.stat-val{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;color:#fff;line-height:1;transition:all .4s}
+.stat-val.highlight{color:var(--electric)}
+.stat-val.gold{color:var(--gold)}
+.stat-val.sky{color:var(--sky)}
+.stat-val.danger{color:var(--danger)}
+.stat-label{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;text-align:center;font-weight:500;letter-spacing:.2px}
+
+/* NOTIF */
+.notif{position:fixed;bottom:86px;right:20px;background:var(--forest);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;font-family:'Manrope',sans-serif;border-left:4px solid var(--electric);box-shadow:var(--shadow);transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:50;max-width:280px}
+.notif.show{transform:translateX(0)}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand-icon">🚌</div>
+    <div>
+      <div class="brand-name">Tay Ninh GreenBus Planner</div>
+      <div class="brand-sub">Tối ưu hóa mạng lưới xe buýt điện du lịch</div>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="setTab('map',this)">🗺 Bản đồ</div>
+    <div class="nav-tab" onclick="setTab('pareto',this)">📊 Phân tích Pareto</div>
+    <div class="nav-tab" onclick="setTab('sim',this)">⚡ Mô phỏng</div>
+    <div class="nav-tab" onclick="setTab('report',this)">📄 Báo cáo</div>
+  </div>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <div class="status-label" id="statusLabel">Hệ thống sẵn sàng</div>
+  </div>
+</nav>
+
+<div class="main">
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="section-label">Kịch bản vận hành</div>
+    <div class="scenario-pills">
+      <div class="pill active" onclick="selectScenario(this,'Ngày thường',35000)">Ngày thường</div>
+      <div class="pill" onclick="selectScenario(this,'Cuối tuần',65000)">Cuối tuần</div>
+      <div class="pill" onclick="selectScenario(this,'Ngày lễ',100000)">Ngày lễ 🔥</div>
+      <div class="pill" onclick="selectScenario(this,'Tết',150000)">Tết 🎆</div>
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">Tham số đầu vào</div>
+    <div class="control-row">
+      <div class="ctrl-head"><span class="ctrl-name">Số xe điện</span><span class="ctrl-val" id="val-bus">10 xe</span></div>
+      <input type="range" min="4" max="20" value="10" oninput="updateSlider('bus',this.value,'xe')">
+    </div>
+    <div class="control-row">
+      <div class="ctrl-head"><span class="ctrl-name">Dung lượng pin (kWh)</span><span class="ctrl-val" id="val-bat">120 kWh</span></div>
+      <input type="range" min="60" max="300" step="20" value="120" oninput="updateSlider('bat',this.value,'kWh')">
+    </div>
+    <div class="control-row">
+      <div class="ctrl-head"><span class="ctrl-name">SoC tối thiểu</span><span class="ctrl-val" id="val-soc">20%</span></div>
+      <input type="range" min="10" max="40" step="5" value="20" oninput="updateSlider('soc',this.value,'%')">
+    </div>
+    <div class="control-row">
+      <div class="ctrl-head"><span class="ctrl-name">Lượng khách dự báo</span><span class="ctrl-val" id="val-demand">35.000</span></div>
+      <input type="range" min="5000" max="150000" step="5000" value="35000" id="demandSlider" oninput="updateDemand(this.value)">
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">Trọng số mục tiêu</div>
+    <div class="weight-list">
+      <div class="weight-item">
+        <div class="weight-badge" style="background:#edf8f3;color:#1a7a44">Z₁</div>
+        <span class="weight-name">Min chi phí</span>
+        <div class="weight-bar-wrap"><div class="weight-bar" style="width:25%;background:#2ECC71"></div></div>
+        <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:26px;text-align:right">25%</span>
+      </div>
+      <div class="weight-item">
+        <div class="weight-badge" style="background:#fff8e6;color:#b07a00">Z₂</div>
+        <span class="weight-name">Max trải nghiệm</span>
+        <div class="weight-bar-wrap"><div class="weight-bar" style="width:30%;background:#F0A500"></div></div>
+        <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:26px;text-align:right">30%</span>
+      </div>
+      <div class="weight-item">
+        <div class="weight-badge" style="background:#e6f6f8;color:#1a8a96">Z₃</div>
+        <span class="weight-name">Max chống chịu</span>
+        <div class="weight-bar-wrap"><div class="weight-bar" style="width:20%;background:#3BBFCE"></div></div>
+        <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:26px;text-align:right">20%</span>
+      </div>
+      <div class="weight-item">
+        <div class="weight-badge" style="background:#fdf0ee;color:#a02a1a">Z₄</div>
+        <span class="weight-name">Max giảm CO₂</span>
+        <div class="weight-bar-wrap"><div class="weight-bar" style="width:25%;background:#E74C3C"></div></div>
+        <span style="font-size:10px;font-weight:700;color:var(--muted);min-width:26px;text-align:right">25%</span>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="section-label">Tuyến đường (4 tuyến)</div>
+    <div id="route-list">
+      <div class="route-item selected" onclick="selectRoute(this,0)">
+        <div class="route-dot" style="background:#2ECC71"></div>
+        <div class="route-info"><div class="route-name">Tuyến 1 — Núi Bà Đen</div><div class="route-meta">Bến xe → KDLQG Núi Bà Đen • 6 trạm</div></div>
+        <span class="route-sl">97%</span>
+      </div>
+      <div class="route-item" onclick="selectRoute(this,1)">
+        <div class="route-dot" style="background:#F0A500"></div>
+        <div class="route-info"><div class="route-name">Tuyến 2 — Tòa Thánh</div><div class="route-meta">Bến xe → Tòa Thánh Tây Ninh • 5 trạm</div></div>
+        <span class="route-sl">90%</span>
+      </div>
+      <div class="route-item" onclick="selectRoute(this,2)">
+        <div class="route-dot" style="background:#3BBFCE"></div>
+        <div class="route-info"><div class="route-name">Tuyến 3 — Hồ Dầu Tiếng</div><div class="route-meta">Bến xe → Hồ Dầu Tiếng • 4 trạm</div></div>
+        <span class="route-sl">82%</span>
+      </div>
+      <div class="route-item" onclick="selectRoute(this,3)">
+        <div class="route-dot" style="background:#E74C3C"></div>
+        <div class="route-info"><div class="route-name">Tuyến 4 — Liên tuyến</div><div class="route-meta">Núi Bà Đen ↔ Tòa Thánh • 8 trạm</div></div>
+        <span class="route-sl">88%</span>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <button class="run-btn" onclick="runOptimize()">⚡ Chạy H-RL-VaNSAS</button>
+    <button class="export-btn" onclick="showNotif('📄 Đang xuất báo cáo PDF...')">↓ Xuất báo cáo PDF</button>
+    <button class="export-btn" onclick="showNotif('🗺 Đang xuất GeoJSON...')">↓ Xuất GIS (GeoJSON)</button>
+  </div>
+</aside>
+
+<!-- ═══════════ CONTENT ═══════════ -->
+<div class="content-area">
+
+  <!-- ── TAB: BẢN ĐỒ ── -->
+  <div class="tab-content active" id="tab-map" style="flex-direction:row">
+    <div class="map-area" id="mapArea">
+      <canvas class="map-canvas" id="mapCanvas"></canvas>
+      <div class="map-overlay-tl">
+        <div class="map-btn" onclick="zoom(1.2)">＋</div>
+        <div class="map-btn" onclick="zoom(0.8)">－</div>
+        <div class="map-btn" onclick="resetView()">⌖</div>
+      </div>
+      <div class="map-overlay-tr">
+        <div class="map-btn" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;display:flex;align-items:center" onclick="toggleLayer('buses')" id="busToggle">🚌 Xe buýt</div>
+        <div class="map-btn" style="width:auto;padding:0 10px;font-size:11px;font-weight:700" onclick="toggleLayer('stations')" id="stationToggle">⚡ Trạm sạc</div>
+        <div class="map-btn" style="width:auto;padding:0 10px;font-size:11px;font-weight:700" onclick="toggleLayer('heat')" id="heatToggle">🌡 Nhiệt độ</div>
+      </div>
+      <div class="map-legend">
+        <div class="legend-title">Chú giải</div>
+        <div class="legend-row"><div class="legend-line" style="background:#2ECC71"></div><span class="legend-text">Tuyến 1 — Núi Bà Đen</span></div>
+        <div class="legend-row"><div class="legend-line" style="background:#F0A500"></div><span class="legend-text">Tuyến 2 — Tòa Thánh</span></div>
+        <div class="legend-row"><div class="legend-line" style="background:#3BBFCE"></div><span class="legend-text">Tuyến 3 — Hồ Dầu Tiếng</span></div>
+        <div class="legend-row"><div class="legend-line" style="background:#E74C3C"></div><span class="legend-text">Tuyến 4 — Liên tuyến</span></div>
+        <div class="legend-row"><div class="legend-dot-icon" style="background:#FFD700;border-color:#b8a000"></div><span class="legend-text">Trạm sạc nhanh</span></div>
+        <div class="legend-row"><div class="legend-dot-icon" style="background:#fff;border-color:#aaa"></div><span class="legend-text">Điểm dừng</span></div>
+      </div>
+      <div class="map-tooltip" id="mapTooltip">
+        <div class="tooltip-name" id="ttName">—</div>
+        <div class="tooltip-row"><span>Loại</span><span class="tooltip-val" id="ttType">—</span></div>
+        <div class="tooltip-row"><span>Khách/giờ</span><span class="tooltip-val" id="ttDemand">—</span></div>
+        <div class="tooltip-row"><span>Thời gian dừng</span><span class="tooltip-val" id="ttTime">—</span></div>
+      </div>
+      <div class="running-overlay" id="runOverlay">
+        <div style="text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">⚡</div>
+          <div class="running-title">Đang tối ưu hóa H-RL-VaNSAS...</div>
+          <div class="running-sub" id="runStep">Khởi tạo tập hành trình ban đầu</div>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" id="runBar"></div></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45)" id="runIter">Vòng lặp: 0 / 500</div>
+      </div>
+    </div>
+    <div class="right-panel" id="rightPanel">
+      <div class="rp-inner">
+        <div class="rp-title" id="rpTitle">Tuyến 1<span class="rp-close" onclick="closePanel()">✕</span></div>
+        <div class="rp-metric"><div class="rp-metric-label">Service Level</div><div class="rp-metric-val" id="rpSL"></div></div>
+        <div class="rp-metric"><div class="rp-metric-label">Khoảng cách</div><div class="rp-metric-val" id="rpDist"></div></div>
+        <div class="rp-metric"><div class="rp-metric-label">Thời gian vòng</div><div class="rp-metric-val" id="rpTime"></div></div>
+        <div class="rp-metric"><div class="rp-metric-label">Phát thải CO₂</div><div class="rp-metric-val" id="rpCO2"></div></div>
+        <div style="margin-top:12px"><div class="section-label" style="margin-bottom:8px">Lịch trình dừng</div><div id="stopList"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: PARETO ── -->
+  <div class="tab-content" id="tab-pareto">
+    <div class="pareto-wrap">
+      <div class="pareto-header">
+        <div class="pareto-title">📊 Phân tích Pareto Front</div>
+        <div class="pareto-sub">So sánh các nghiệm tối ưu trên mặt phẳng đa mục tiêu — H-RL-VaNSAS vs CPO, KHA, SSA</div>
+      </div>
+      <div class="pareto-grid">
+        <div class="chart-card">
+          <div class="chart-title">Pareto Front: Z₁ (Chi phí) vs Z₂ (Trải nghiệm)</div>
+          <div class="chart-sub">Mỗi điểm là một nghiệm khả thi — vùng xanh là Pareto front tối ưu</div>
+          <canvas class="chart-canvas" id="paretoChart1"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Pareto Front: Z₃ (Chống chịu) vs Z₄ (CO₂)</div>
+          <div class="chart-sub">Điểm ★ là nghiệm TOPSIS được chọn (cân bằng tốt nhất)</div>
+          <canvas class="chart-canvas" id="paretoChart2"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">So sánh HV & ARP giữa các thuật toán</div>
+          <div class="chart-sub">Hypervolume và Average Ratio of Pareto Optimal Solutions qua 5 lần chạy</div>
+          <canvas class="chart-canvas" id="hvChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Radar: Hiệu suất đa mục tiêu</div>
+          <div class="chart-sub">So sánh tổng thể 5 thuật toán theo 5 chiều mục tiêu</div>
+          <canvas class="chart-canvas" id="radarChart"></canvas>
+        </div>
+        <div class="chart-card full">
+          <div class="chart-title">Bảng so sánh chi tiết — H-RL-VaNSAS vs các phương pháp đối chiếu</div>
+          <div class="chart-sub" style="margin-bottom:14px">Kết quả tốt nhất được in đậm và tô màu xanh</div>
+          <table class="pareto-table">
+            <thead><tr><th>Chỉ số / Thuật toán</th><th>CPO</th><th>KHA</th><th>SSA</th><th>MRFO</th><th>H-RL-VaNSAS ★</th><th>Cải thiện</th></tr></thead>
+            <tbody>
+              <tr><td>Resilience Index</td><td>490</td><td>480</td><td>470</td><td>485</td><td class="best" style="font-weight:700;color:var(--edim)">550</td><td><span class="badge badge-green">+12–17%</span></td></tr>
+              <tr><td>Sustainability Index</td><td>350</td><td>340</td><td>330</td><td>345</td><td style="font-weight:700;color:var(--edim)">370</td><td><span class="badge badge-green">+6–12%</span></td></tr>
+              <tr><td>Safety Index</td><td>460</td><td>450</td><td>440</td><td>455</td><td style="font-weight:700;color:var(--edim)">480</td><td><span class="badge badge-green">+4–9%</span></td></tr>
+              <tr><td>Tourist Preferences</td><td>280</td><td>270</td><td>265</td><td>275</td><td style="font-weight:700;color:var(--edim)">300</td><td><span class="badge badge-gold">+7–13%</span></td></tr>
+              <tr><td>Accessibility Score</td><td>2.200</td><td>2.150</td><td>2.100</td><td>2.180</td><td style="font-weight:700;color:var(--edim)">2.300</td><td><span class="badge badge-green">+5–10%</span></td></tr>
+              <tr><td>Total Distance (km)</td><td>1.100</td><td>1.050</td><td>1.150</td><td>1.080</td><td style="font-weight:700;color:var(--edim)">950</td><td><span class="badge badge-blue">−9–17%</span></td></tr>
+              <tr><td>Hypervolume (HV)</td><td>0.82</td><td>0.78</td><td>0.75</td><td>0.80</td><td style="font-weight:700;color:var(--edim)">0.88</td><td><span class="badge badge-green">Cao nhất</span></td></tr>
+              <tr><td>ARP</td><td>0.62</td><td>0.60</td><td>0.58</td><td>0.61</td><td style="font-weight:700;color:var(--edim)">0.68</td><td><span class="badge badge-green">Cao nhất</span></td></tr>
+              <tr><td>Tốc độ hội tụ (s)</td><td>1.200</td><td>1.400</td><td>1.500</td><td>1.300</td><td style="font-weight:700;color:var(--edim)">1.100</td><td><span class="badge badge-blue">Nhanh nhất</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: MÔ PHỎNG ── -->
+  <div class="tab-content" id="tab-sim">
+    <div class="sim-wrap">
+      <div class="sim-header">
+        <div class="sim-title">⚡ Mô phỏng sự kiện rời rạc (DES)</div>
+        <div class="sim-sub">Kiểm chứng kết quả tối ưu qua SimPy — phân tích tải theo giờ, SoC pin và hàng đợi tại trạm</div>
+      </div>
+      <div class="sim-controls">
+        <div class="sim-ctrl">
+          <label>Tuyến mô phỏng</label>
+          <select class="sim-select" id="simRoute" onchange="runSim()">
+            <option>Tuyến 1 — Núi Bà Đen</option>
+            <option>Tuyến 2 — Tòa Thánh</option>
+            <option>Tuyến 3 — Hồ Dầu Tiếng</option>
+            <option>Tuyến 4 — Liên tuyến</option>
+            <option>Toàn bộ 4 tuyến</option>
+          </select>
+        </div>
+        <div class="sim-ctrl">
+          <label>Kịch bản</label>
+          <select class="sim-select" id="simScenario" onchange="runSim()">
+            <option>Ngày thường (35.000 lượt)</option>
+            <option>Cuối tuần (65.000 lượt)</option>
+            <option>Ngày lễ (100.000 lượt)</option>
+            <option>Tết cao điểm (150.000 lượt)</option>
+          </select>
+        </div>
+        <div class="sim-ctrl">
+          <label>Thời đoạn</label>
+          <select class="sim-select" id="simPeriod" onchange="runSim()">
+            <option>06:00 – 22:00 (cả ngày)</option>
+            <option>06:00 – 09:00 (cao điểm sáng)</option>
+            <option>10:00 – 14:00 (giữa ngày)</option>
+            <option>15:00 – 19:00 (cao điểm chiều)</option>
+          </select>
+        </div>
+        <button class="sim-run-btn" onclick="runSim()">▶ Chạy mô phỏng</button>
+      </div>
+      <div class="sim-grid">
+        <div class="sim-timeline">
+          <div class="chart-title" style="margin-bottom:4px">Lưu lượng khách & Service Level theo giờ</div>
+          <div class="chart-sub" style="margin-bottom:14px">Đường xanh = service level | Cột = lượng khách phục vụ được</div>
+          <canvas id="simTimelineChart" style="width:100%;height:240px;display:block"></canvas>
+        </div>
+        <div class="sim-metrics">
+          <div class="sim-metric-card">
+            <div class="sim-metric-val" style="color:var(--electric)" id="simSL">95.2%</div>
+            <div class="sim-metric-label">Service Level trung bình</div>
+            <div class="sim-metric-trend trend-up" id="simSLTrend">↑ +2.1% so với baseline</div>
+          </div>
+          <div class="sim-metric-card">
+            <div class="sim-metric-val" style="color:var(--gold)" id="simWait">4.8 phút</div>
+            <div class="sim-metric-label">Thời gian chờ TB tại trạm</div>
+            <div class="sim-metric-trend trend-up" id="simWaitTrend">↓ −1.7 phút so với baseline</div>
+          </div>
+          <div class="sim-metric-card">
+            <div class="sim-metric-val" style="color:var(--sky)" id="simSoC">28.4%</div>
+            <div class="sim-metric-label">SoC pin thấp nhất (toàn ngày)</div>
+            <div class="sim-metric-trend trend-up">✓ Trên ngưỡng an toàn 20%</div>
+          </div>
+          <div class="sim-metric-card">
+            <div class="sim-metric-val" style="color:var(--danger)" id="simQueue">12 xe</div>
+            <div class="sim-metric-label">Đỉnh hàng đợi trạm sạc</div>
+            <div class="sim-metric-trend trend-down" id="simQueueTrend">⚠ Cao điểm 08:00–09:00</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="chart-card" style="background:var(--panel);border-radius:12px;padding:18px;box-shadow:var(--shadow);border:1px solid var(--border)">
+          <div class="chart-title">SoC pin theo giờ vận hành</div>
+          <div class="chart-sub">Đường đỏ nét đứt = ngưỡng an toàn 20%</div>
+          <canvas id="socChart" style="width:100%;height:180px;display:block"></canvas>
+        </div>
+        <div class="sim-events">
+          <div class="chart-title" style="margin-bottom:12px">📋 Nhật ký sự kiện mô phỏng</div>
+          <div id="eventLog">
+            <div class="event-item"><span class="event-time">06:00</span><div class="event-dot" style="background:var(--electric)"></div><span class="event-text">Tất cả 10 xe xuất bến — SoC: 100%</span></div>
+            <div class="event-item"><span class="event-time">07:30</span><div class="event-dot" style="background:var(--gold)"></div><span class="event-text">Tuyến 1: Quá tải tại ga cáp treo (148 hành khách chờ)</span></div>
+            <div class="event-item"><span class="event-time">08:15</span><div class="event-dot" style="background:var(--sky)"></div><span class="event-text">Xe B-03 vào trạm sạc nhanh (SoC: 22%) — thời gian sạc: 38 phút</span></div>
+            <div class="event-item"><span class="event-time">09:00</span><div class="event-dot" style="background:var(--electric)"></div><span class="event-text">Điều phối thêm xe B-07 cho Tuyến 1 — service level phục hồi</span></div>
+            <div class="event-item"><span class="event-time">12:30</span><div class="event-dot" style="background:var(--electric)"></div><span class="event-text">Lưu lượng ổn định — SL toàn mạng: 96.8%</span></div>
+            <div class="event-item"><span class="event-time">16:00</span><div class="event-dot" style="background:var(--gold)"></div><span class="event-text">Cao điểm chiều — Tuyến 4 tăng tần suất 15→10 phút</span></div>
+            <div class="event-item"><span class="event-time">19:45</span><div class="event-dot" style="background:var(--electric)"></div><span class="event-text">Kết thúc ca vận hành — tổng khách phục vụ: 33.250 lượt</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: BÁO CÁO ── -->
+  <div class="tab-content" id="tab-report">
+    <div class="report-wrap">
+      <div class="report-doc">
+        <div class="report-header">
+          <div class="report-logo">🚌</div>
+          <div class="report-title">Báo cáo Tối ưu hóa Mạng lưới Xe buýt Điện<br>Du lịch Tỉnh Tây Ninh</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:6px">Thuật toán: H-RL-VaNSAS • Mô phỏng: SimPy DES</div>
+          <div class="report-date" id="reportDate"></div>
+        </div>
+        <div class="report-body">
+
+          <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-val" style="color:var(--electric)">95%</div><div class="kpi-label">Service Level</div></div>
+            <div class="kpi-card"><div class="kpi-val" style="color:var(--gold)">54%</div><div class="kpi-label">Giảm CO₂</div></div>
+            <div class="kpi-card"><div class="kpi-val">4</div><div class="kpi-label">Tuyến tối ưu</div></div>
+            <div class="kpi-card"><div class="kpi-val" style="color:var(--sky)">3</div><div class="kpi-label">Trạm sạc</div></div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">📍 Tổng quan mạng lưới tuyến</div>
+            <table class="report-table">
+              <thead><tr><th>Tuyến</th><th>Hành trình</th><th>Số trạm</th><th>Khoảng cách</th><th>Thời gian</th><th>Service Level</th></tr></thead>
+              <tbody>
+                <tr><td><span style="color:#2ECC71;font-weight:700">● Tuyến 1</span></td><td>Bến xe → Núi Bà Đen</td><td>6</td><td>11.6 km</td><td>55 phút</td><td>97% <div class="report-bar-wrap"><div class="report-bar" style="width:97%;background:#2ECC71"></div></div></td></tr>
+                <tr><td><span style="color:#F0A500;font-weight:700">● Tuyến 2</span></td><td>Bến xe → Tòa Thánh</td><td>5</td><td>14.2 km</td><td>62 phút</td><td>90% <div class="report-bar-wrap"><div class="report-bar" style="width:90%;background:#F0A500"></div></div></td></tr>
+                <tr><td><span style="color:#3BBFCE;font-weight:700">● Tuyến 3</span></td><td>Bến xe → Hồ Dầu Tiếng</td><td>4</td><td>23.4 km</td><td>78 phút</td><td>82% <div class="report-bar-wrap"><div class="report-bar" style="width:82%;background:#3BBFCE"></div></div></td></tr>
+                <tr><td><span style="color:#E74C3C;font-weight:700">● Tuyến 4</span></td><td>Núi Bà Đen ↔ Tòa Thánh</td><td>8</td><td>18.5 km</td><td>70 phút</td><td>88% <div class="report-bar-wrap"><div class="report-bar" style="width:88%;background:#E74C3C"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">🌿 So sánh phát thải CO₂</div>
+            <div class="co2-comparison">
+              <div class="co2-item">
+                <div class="co2-label">Phương tiện cá nhân (xe máy)</div>
+                <div class="co2-val" style="color:var(--danger)">1.076 tấn/năm</div>
+                <div class="co2-bar-outer"><div class="co2-bar-inner" style="width:100%;background:var(--danger)"></div></div>
+              </div>
+              <div class="co2-item">
+                <div class="co2-label">Xe buýt điện (phương án tối ưu)</div>
+                <div class="co2-val" style="color:var(--electric)">495 tấn/năm</div>
+                <div class="co2-bar-outer"><div class="co2-bar-inner" style="width:46%;background:var(--electric)"></div></div>
+              </div>
+              <div class="co2-item" style="background:#edf8f3;border-color:var(--electric)">
+                <div class="co2-label" style="color:var(--edim)">CO₂ tiết kiệm hàng năm</div>
+                <div class="co2-val" style="color:var(--edim)">581 tấn CO₂</div>
+                <div style="font-size:11px;color:var(--edim);margin-top:6px;font-weight:600">↓ Giảm 54% so với kịch bản hiện tại</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">📋 Kế hoạch phân bổ trạm sạc nhanh</div>
+            <table class="report-table">
+              <thead><tr><th>Trạm sạc</th><th>Vị trí</th><th>Công suất</th><th>Tuyến phục vụ</th><th>Thời gian sạc TB</th></tr></thead>
+              <tbody>
+                <tr><td>⚡ Trạm 1</td><td>Bến xe Tây Ninh (đầu mối)</td><td>150 kW</td><td>Tuyến 1, 2, 4</td><td>38 phút</td></tr>
+                <tr><td>⚡ Trạm 2</td><td>Cổng KDLQG Núi Bà Đen</td><td>120 kW</td><td>Tuyến 1, 4</td><td>45 phút</td></tr>
+                <tr><td>⚡ Trạm 3</td><td>Thị trấn Hòa Thành</td><td>90 kW</td><td>Tuyến 2, 4</td><td>42 phút</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="report-section">
+            <div class="report-section-title">💡 Kết luận & Khuyến nghị</div>
+            <div class="report-finding"><strong>Service level đạt 90–97%</strong> trên cả 4 tuyến trong kịch bản ngày thường, vượt mục tiêu ≥90% đề ra. Kịch bản Tết (150.000 lượt/ngày) yêu cầu tăng lên ít nhất 16 xe để duy trì service level ≥85%.</div>
+            <div class="report-finding"><strong>H-RL-VaNSAS hội tụ sau 500 vòng lặp</strong> (≈18 phút tính toán), nhanh hơn 8% so với CPO và 27% so với SSA. Thuật toán cho Hypervolume 0.88 — cao nhất trong 5 phương pháp so sánh.</div>
+            <div class="report-finding"><strong>Trạm sạc Bến xe Tây Ninh</strong> là nút thắt cổ chai chính trong kịch bản cao điểm. Khuyến nghị lắp thêm 2 đầu sạc 150kW để giảm thời gian chờ từ 38 xuống 22 phút.</div>
+            <div class="report-finding"><strong>Phát thải CO₂ giảm 54%</strong> (581 tấn/năm) so với kịch bản phương tiện cá nhân — tương đương trồng 26.400 cây xanh. Đây là cơ sở thuyết phục để UBND tỉnh phê duyệt đầu tư đội xe điện giai đoạn 2025–2030.</div>
+          </div>
+
+        </div>
+        <div class="report-actions">
+          <button class="action-btn action-primary" onclick="showNotif('📄 Đang xuất PDF...')">↓ Xuất PDF</button>
+          <button class="action-btn action-secondary" onclick="showNotif('📊 Đang xuất Excel...')">↓ Xuất Excel</button>
+          <button class="action-btn action-secondary" onclick="showNotif('🗺 Đang xuất GeoJSON...')">↓ Xuất GIS</button>
+          <button class="action-btn action-secondary" onclick="showNotif('📧 Đã gửi báo cáo!')">✉ Gửi email</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end content-area -->
+</div><!-- end main -->
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <div class="stat-block"><div class="stat-val highlight" id="stat-sl">93%</div><div class="stat-label">Service Level TB</div></div>
+  <div class="stat-block"><div class="stat-val" id="stat-routes">4</div><div class="stat-label">Tuyến hoạt động</div></div>
+  <div class="stat-block"><div class="stat-val" id="stat-buses">10</div><div class="stat-label">Xe buýt điện</div></div>
+  <div class="stat-block"><div class="stat-val gold" id="stat-co2">54%</div><div class="stat-label">Giảm CO₂</div></div>
+  <div class="stat-block"><div class="stat-val sky" id="stat-stops">23</div><div class="stat-label">Điểm dừng</div></div>
+  <div class="stat-block"><div class="stat-val" id="stat-dist">49.2</div><div class="stat-label">Tổng km/vòng</div></div>
+  <div class="stat-block"><div class="stat-val danger" id="stat-charge">3</div><div class="stat-label">Trạm sạc nhanh</div></div>
+  <div class="stat-block"><div class="stat-val" id="stat-iter">—</div><div class="stat-label">Vòng lặp tối ưu</div></div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ═══ DATA ═══
+const ROUTES=[
+  {name:"Tuyến 1 — Núi Bà Đen",color:"#2ECC71",sl:97,dist:11.6,time:55,co2:6.96,
+   stops:[{name:"Bến xe Tây Ninh",time:"06:00"},{name:"Chợ Tây Ninh",time:"06:08"},{name:"Trung tâm TP Tây Ninh",time:"06:15"},{name:"Cổng KDLQG Núi Bà Đen",time:"06:30"},{name:"Ga cáp treo (dưới)",time:"06:35"},{name:"Đỉnh Núi Bà Đen",time:"06:55"}],
+   nodes:[[.18,.72],[.25,.62],[.33,.52],[.52,.42],[.58,.38],[.64,.28]]},
+  {name:"Tuyến 2 — Tòa Thánh",color:"#F0A500",sl:90,dist:14.2,time:62,co2:8.52,
+   stops:[{name:"Bến xe Tây Ninh",time:"06:00"},{name:"QL22B — Ngã tư Gò Dầu",time:"06:12"},{name:"Thị trấn Hòa Thành",time:"06:25"},{name:"Cổng Tòa Thánh Tây Ninh",time:"06:35"},{name:"Quảng trường Tòa Thánh",time:"06:40"}],
+   nodes:[[.18,.72],[.28,.68],[.40,.66],[.52,.60],[.58,.56]]},
+  {name:"Tuyến 3 — Hồ Dầu Tiếng",color:"#3BBFCE",sl:82,dist:23.4,time:78,co2:14.04,
+   stops:[{name:"Bến xe Tây Ninh",time:"06:00"},{name:"Ngã ba Trảng Bàng",time:"06:20"},{name:"Dương Minh Châu",time:"06:40"},{name:"Khu du lịch Hồ Dầu Tiếng",time:"07:05"}],
+   nodes:[[.18,.72],[.22,.80],[.30,.84],[.42,.88]]},
+  {name:"Tuyến 4 — Liên tuyến",color:"#E74C3C",sl:88,dist:18.5,time:70,co2:11.1,
+   stops:[{name:"Ga cáp treo Núi Bà Đen",time:"08:00"},{name:"Trung tâm TP Tây Ninh",time:"08:25"},{name:"Thị trấn Hòa Thành",time:"08:40"},{name:"Cổng Tòa Thánh Tây Ninh",time:"08:55"},{name:"Đền Bà Hòa Thành",time:"09:00"},{name:"Chợ Long Hoa",time:"09:08"},{name:"Bến xe Tây Ninh",time:"09:20"},{name:"Hồ Dầu Tiếng (nhánh)",time:"09:50"}],
+   nodes:[[.64,.28],[.52,.42],[.40,.55],[.52,.60],[.55,.64],[.42,.68],[.18,.72],[.20,.82]]},
+];
+const LANDMARKS=[
+  {name:"Bến xe Tây Ninh",x:.18,y:.72,icon:"🚌",type:"depot"},
+  {name:"Núi Bà Đen (Đỉnh)",x:.64,y:.28,icon:"⛰",type:"attraction"},
+  {name:"Ga cáp treo",x:.58,y:.38,icon:"🚡",type:"stop"},
+  {name:"Tòa Thánh Tây Ninh",x:.52,y:.60,icon:"⛩",type:"attraction"},
+  {name:"Hồ Dầu Tiếng",x:.42,y:.88,icon:"💧",type:"attraction"},
+  {name:"Trạm sạc 1",x:.20,y:.70,icon:"⚡",type:"charge"},
+  {name:"Trạm sạc 2",x:.60,y:.36,icon:"⚡",type:"charge"},
+  {name:"Trạm sạc 3",x:.40,y:.60,icon:"⚡",type:"charge"},
+];
+
+// ═══ STATE ═══
+let zoomLevel=1,panX=0,panY=0,selectedRoute=0;
+let showBuses=true,showStations=true,showHeatmap=false;
+let buses=[],animFrame,currentTab='map';
+
+// ═══ CANVAS ═══
+const canvas=document.getElementById('mapCanvas');
+const ctx=canvas.getContext('2d');
+function resizeCanvas(){canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight}
+window.addEventListener('resize',()=>{resizeCanvas();if(currentTab==='map')drawMap()});
+resizeCanvas();
+function toScreen(nx,ny){return[panX+nx*canvas.width*zoomLevel,panY+ny*canvas.height*zoomLevel]}
+
+// ═══ MAP DRAW ═══
+function drawMap(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#0B2A1E');g.addColorStop(.5,'#0D3525');g.addColorStop(1,'#0B2A1E');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(46,204,113,.05)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  [[[.1,.5],[.9,.5]],[[.1,.7],[.9,.7]],[[.3,.1],[.3,.9]],[[.6,.1],[.6,.9]],[[.15,.35],[.75,.85]],[[.8,.2],[.2,.8]]].forEach(road=>{
+    ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1.5;ctx.beginPath();
+    road.forEach((pt,i)=>{const[sx,sy]=toScreen(pt[0],pt[1]);i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy)});ctx.stroke()});
+  if(showHeatmap)drawHeatmap();
+  ROUTES.forEach((r,i)=>{const a=i===selectedRoute?1:.35,w=i===selectedRoute?4:2;drawRoute(r,a,w,i)});
+  LANDMARKS.forEach(lm=>drawLandmark(lm));
+  if(showBuses)buses.forEach(b=>drawBus(b));
+}
+function drawRoute(route,alpha,width,idx){
+  const n=route.nodes;ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=route.color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';
+  if(idx!==selectedRoute)ctx.setLineDash([6,4]);
+  ctx.beginPath();n.forEach((pt,i)=>{const[sx,sy]=toScreen(pt[0],pt[1]);i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy)});ctx.stroke();ctx.setLineDash([]);
+  if(idx===selectedRoute){ctx.strokeStyle=route.color;ctx.lineWidth=10;ctx.globalAlpha=.12;ctx.beginPath();n.forEach((pt,i)=>{const[sx,sy]=toScreen(pt[0],pt[1]);i===0?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy)});ctx.stroke()}
+  n.forEach(pt=>{const[sx,sy]=toScreen(pt[0],pt[1]);ctx.globalAlpha=alpha;ctx.beginPath();ctx.arc(sx,sy,idx===selectedRoute?5:3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle=route.color;ctx.lineWidth=2;ctx.stroke()});
+  ctx.restore();
+}
+function drawLandmark(lm){
+  const[sx,sy]=toScreen(lm.x,lm.y);ctx.save();
+  if(lm.type==='charge'&&!showStations){ctx.restore();return}
+  if(lm.type==='attraction'){const p=.5+.5*Math.sin(Date.now()/800);ctx.beginPath();ctx.arc(sx,sy,18+p*6,0,Math.PI*2);ctx.strokeStyle='rgba(240,165,0,.2)';ctx.lineWidth=2;ctx.stroke()}
+  const bgC={depot:'#1A3C6E',attraction:'#1a6349',stop:'#2a4a3a',charge:'#8a6000'};
+  ctx.beginPath();ctx.arc(sx,sy,lm.type==='attraction'?16:12,0,Math.PI*2);ctx.fillStyle=bgC[lm.type]||'#2a4a3a';ctx.fill();ctx.strokeStyle=lm.type==='attraction'?'#F0A500':'rgba(255,255,255,.3)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.font=`${lm.type==='attraction'?14:11}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(lm.icon,sx,sy);
+  if(lm.type==='attraction'||lm.type==='depot'){
+    ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='600 10px Inter,sans-serif';ctx.textAlign='center';
+    const words=lm.name.split(' ');let line='',lines=[];
+    words.forEach(w=>{if(ctx.measureText(line+w).width>80&&line){lines.push(line.trim());line=''}line+=w+' '});lines.push(line.trim());
+    lines.forEach((l,i)=>ctx.fillText(l,sx,sy+22+i*12));
+  }
+  ctx.restore();
+}
+function drawBus(b){
+  const[sx,sy]=toScreen(b.x,b.y);ctx.save();
+  ctx.beginPath();ctx.arc(sx,sy+2,7,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.3)';ctx.fill();
+  ctx.beginPath();ctx.arc(sx,sy,7,0,Math.PI*2);ctx.fillStyle=ROUTES[b.route].color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.font='8px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🚌',sx,sy);
+  ctx.restore();
+}
+function drawHeatmap(){
+  [{x:.58,y:.38,r:.15,s:.8},{x:.52,y:.60,r:.12,s:.6},{x:.18,y:.72,r:.10,s:.5},{x:.42,y:.88,r:.10,s:.35}].forEach(h=>{
+    const[sx,sy]=toScreen(h.x,h.y),r=h.r*canvas.width*zoomLevel;
+    const g=ctx.createRadialGradient(sx,sy,0,sx,sy,r);
+    g.addColorStop(0,`rgba(240,165,0,${h.s*.5})`);g.addColorStop(.5,`rgba(231,76,60,${h.s*.2})`);g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill()});
+}
+function initBuses(){buses=[];ROUTES.forEach((route,ri)=>{const cnt=ri===0?2:ri===3?3:1;for(let i=0;i<cnt;i++){const p=i/cnt,segI=Math.floor(p*(route.nodes.length-1));buses.push({route:ri,segIdx:segI,t:(p*(route.nodes.length-1))-segI,speed:.002+Math.random()*.001,x:route.nodes[0][0],y:route.nodes[0][1]})}})}
+function updateBuses(){buses.forEach(b=>{const r=ROUTES[b.route],n=r.nodes;b.t+=b.speed;if(b.t>=1){b.t-=1;b.segIdx=(b.segIdx+1)%(n.length-1)}const n0=n[b.segIdx],n1=n[(b.segIdx+1)%n.length];b.x=n0[0]+(n1[0]-n0[0])*b.t;b.y=n0[1]+(n1[1]-n0[1])*b.t})}
+function animate(){if(currentTab==='map'){updateBuses();drawMap()}animFrame=requestAnimationFrame(animate)}
+
+// ═══ TABS ═══
+function setTab(id,el){
+  currentTab=id;
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='map'){resizeCanvas();drawMap()}
+  else if(id==='pareto')setTimeout(drawParetoCharts,50);
+  else if(id==='sim')setTimeout(()=>{runSim();drawSocChart()},50);
+  document.getElementById('rightPanel').classList.remove('open');
+}
+
+// ═══ PARETO CHARTS ═══
+function drawParetoCharts(){
+  drawScatter('paretoChart1',{xl:'Z₁ Chi phí (triệu VNĐ)',yl:'Z₂ Trải nghiệm (điểm)',
+    datasets:[
+      {label:'CPO',color:'#E74C3C',pts:Array.from({length:15},(_,i)=>({x:900+i*40+rand(30),y:200+i*6+rand(15)}))},
+      {label:'KHA',color:'#F0A500',pts:Array.from({length:15},(_,i)=>({x:920+i*38+rand(30),y:195+i*5+rand(15)}))},
+      {label:'H-RL-VaNSAS',color:'#2ECC71',pts:Array.from({length:20},(_,i)=>({x:860+i*35+rand(20),y:210+i*7+rand(10)})),pareto:true},
+    ]
+  });
+  drawScatter('paretoChart2',{xl:'Z₃ Chống chịu (điểm)',yl:'Z₄ Giảm CO₂ (%)',
+    datasets:[
+      {label:'CPO',color:'#E74C3C',pts:Array.from({length:15},(_,i)=>({x:400+i*8+rand(15),y:45+i*.6+rand(5)}))},
+      {label:'KHA',color:'#F0A500',pts:Array.from({length:15},(_,i)=>({x:390+i*7+rand(15),y:44+i*.5+rand(5)}))},
+      {label:'H-RL-VaNSAS',color:'#2ECC71',pts:Array.from({length:20},(_,i)=>({x:430+i*8+rand(12),y:47+i*.6+rand(4)})),pareto:true},
+    ]
+  });
+  drawBarChart('hvChart');
+  drawRadarChart('radarChart');
+}
+function rand(r){return(Math.random()-.5)*r}
+function drawScatter(id,cfg){
+  const cv=document.getElementById(id);if(!cv)return;
+  const c=cv.getContext('2d'),W=cv.offsetWidth,H=cv.offsetHeight;
+  cv.width=W;cv.height=H;
+  const pad={l:48,r:16,t:12,b:36};
+  const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  c.fillStyle='#fafcfa';c.fillRect(0,0,W,H);
+  // axes
+  c.strokeStyle='#D4E0D8';c.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad.t+iH*i/4;c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke()}
+  for(let i=0;i<=5;i++){const x=pad.l+iW*i/5;c.beginPath();c.moveTo(x,pad.t);c.lineTo(x,pad.t+iH);c.stroke()}
+  // labels
+  c.fillStyle='#6B8070';c.font='10px Inter';c.textAlign='center';
+  c.fillText(cfg.xl,pad.l+iW/2,H-4);
+  c.save();c.translate(12,pad.t+iH/2);c.rotate(-Math.PI/2);c.fillText(cfg.yl,0,0);c.restore();
+  // find ranges
+  const allX=cfg.datasets.flatMap(d=>d.pts.map(p=>p.x));
+  const allY=cfg.datasets.flatMap(d=>d.pts.map(p=>p.y));
+  const xMin=Math.min(...allX),xMax=Math.max(...allX);
+  const yMin=Math.min(...allY),yMax=Math.max(...allY);
+  const sx=x=>pad.l+(x-xMin)/(xMax-xMin)*iW;
+  const sy=y=>pad.t+iH-(y-yMin)/(yMax-yMin)*iH;
+  cfg.datasets.forEach(ds=>{
+    if(ds.pareto){
+      const sorted=[...ds.pts].sort((a,b)=>a.x-b.x);
+      c.beginPath();c.moveTo(sx(sorted[0].x),sy(sorted[0].y));
+      sorted.forEach(p=>c.lineTo(sx(p.x),sy(p.y)));
+      c.strokeStyle=ds.color+'60';c.lineWidth=2;c.stroke();
+    }
+    ds.pts.forEach((p,i)=>{
+      c.beginPath();c.arc(sx(p.x),sy(p.y),ds.pareto?5:3,0,Math.PI*2);
+      c.fillStyle=ds.color+(ds.pareto?'':'99');c.fill();
+      if(ds.pareto&&i===ds.pts.length-1){// star for best
+        c.font='bold 14px serif';c.fillStyle='#FFD700';c.textAlign='center';c.textBaseline='middle';c.fillText('★',sx(p.x)+6,sy(p.y)-6)}
+    });
+  });
+  // legend
+  let lx=pad.l;
+  cfg.datasets.forEach(ds=>{c.beginPath();c.arc(lx+5,H-18,4,0,Math.PI*2);c.fillStyle=ds.color;c.fill();c.fillStyle='#1A2820';c.font='10px Inter';c.textAlign='left';c.fillText(ds.label,lx+12,H-14);lx+=ds.label.length*6+20});
+}
+function drawBarChart(id){
+  const cv=document.getElementById(id);if(!cv)return;
+  const c=cv.getContext('2d'),W=cv.offsetWidth,H=cv.offsetHeight;
+  cv.width=W;cv.height=H;
+  const algos=['CPO','KHA','SSA','MRFO','H-RL-VaNSAS'];
+  const hvVals=[0.82,0.78,0.75,0.80,0.88];
+  const arpVals=[0.62,0.60,0.58,0.61,0.68];
+  const colors=['#E74C3C','#F0A500','#9B59B6','#3BBFCE','#2ECC71'];
+  const pad={l:40,r:16,t:16,b:50};
+  const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  c.fillStyle='#fafcfa';c.fillRect(0,0,W,H);
+  const gw=iW/algos.length,bw=gw*.32;
+  const yMax=1.0;
+  // grid
+  for(let i=0;i<=4;i++){const y=pad.t+iH*i/4;c.strokeStyle='#D4E0D8';c.lineWidth=1;c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke();c.fillStyle='#6B8070';c.font='10px Inter';c.textAlign='right';c.fillText((1-i/4).toFixed(2),pad.l-4,y+3)}
+  algos.forEach((a,i)=>{
+    const x=pad.l+i*gw;
+    // HV bar
+    const hh=(hvVals[i]/yMax)*iH;c.fillStyle=colors[i];c.fillRect(x+gw*.1,pad.t+iH-hh,bw,hh);
+    // ARP bar (lighter)
+    const ah=(arpVals[i]/yMax)*iH;c.fillStyle=colors[i]+'80';c.fillRect(x+gw*.1+bw+4,pad.t+iH-ah,bw,ah);
+    // label
+    c.fillStyle='#1A2820';c.font=`${i===4?'700':'400'} 10px Inter`;c.textAlign='center';c.fillText(a==='H-RL-VaNSAS'?'H-RL-V':a,x+gw/2,H-6);
+  });
+  // legend
+  c.beginPath();c.rect(pad.l,pad.t-4,12,8);c.fillStyle='#2ECC71';c.fill();c.fillStyle='#1A2820';c.font='10px Inter';c.textAlign='left';c.fillText('HV',pad.l+16,pad.t+4);
+  c.beginPath();c.rect(pad.l+50,pad.t-4,12,8);c.fillStyle='#2ECC7180';c.fill();c.fillText('ARP',pad.l+66,pad.t+4);
+}
+function drawRadarChart(id){
+  const cv=document.getElementById(id);if(!cv)return;
+  const c=cv.getContext('2d'),W=cv.offsetWidth,H=cv.offsetHeight;
+  cv.width=W;cv.height=H;
+  const cx=W/2,cy=H/2,r=Math.min(W,H)/2-30;
+  const axes=['Resilience','Sustainability','Safety','Tourist Pref.','Accessibility'];
+  const datasets=[
+    {label:'CPO',color:'#E74C3C',vals:[0.89,0.86,0.88,0.85,0.87]},
+    {label:'SSA',color:'#9B59B6',vals:[0.82,0.79,0.80,0.78,0.82]},
+    {label:'H-RL-VaNSAS',color:'#2ECC71',vals:[0.98,0.95,0.96,0.94,0.97]},
+  ];
+  c.fillStyle='#fafcfa';c.fillRect(0,0,W,H);
+  const n=axes.length;
+  const angle=i=>i*2*Math.PI/n-Math.PI/2;
+  // grid rings
+  [.25,.5,.75,1].forEach(f=>{
+    c.beginPath();axes.forEach((a,i)=>{const x=cx+Math.cos(angle(i))*r*f,y=cy+Math.sin(angle(i))*r*f;i===0?c.moveTo(x,y):c.lineTo(x,y)});c.closePath();c.strokeStyle='#D4E0D8';c.lineWidth=1;c.stroke()});
+  // spokes
+  axes.forEach((_,i)=>{c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+Math.cos(angle(i))*r,cy+Math.sin(angle(i))*r);c.strokeStyle='#D4E0D8';c.lineWidth=1;c.stroke()});
+  // axis labels
+  axes.forEach((a,i)=>{const x=cx+Math.cos(angle(i))*(r+18),y=cy+Math.sin(angle(i))*(r+18);c.fillStyle='#6B8070';c.font='10px Inter';c.textAlign='center';c.textBaseline='middle';c.fillText(a,x,y)});
+  // datasets
+  datasets.forEach(ds=>{
+    c.beginPath();ds.vals.forEach((v,i)=>{const x=cx+Math.cos(angle(i))*r*v,y=cy+Math.sin(angle(i))*r*v;i===0?c.moveTo(x,y):c.lineTo(x,y)});c.closePath();c.strokeStyle=ds.color;c.lineWidth=2;c.stroke();c.fillStyle=ds.color+'30';c.fill()});
+  // legend
+  let lx=20;datasets.forEach(ds=>{c.beginPath();c.moveTo(lx,H-12);c.lineTo(lx+16,H-12);c.strokeStyle=ds.color;c.lineWidth=2;c.stroke();c.fillStyle='#1A2820';c.font='10px Inter';c.textAlign='left';c.fillText(ds.label==='H-RL-VaNSAS'?'H-RL-V':ds.label,lx+20,H-8);lx+=ds.label.length*5+36});
+}
+
+// ═══ SIM CHARTS ═══
+function runSim(){
+  const cv=document.getElementById('simTimelineChart');if(!cv)return;
+  const c=cv.getContext('2d'),W=cv.offsetWidth,H=cv.offsetHeight;
+  cv.width=W;cv.height=H;
+  const hours=['06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
+  const demand=[320,890,1420,980,650,480,720,830,610,540,780,960,640,380,210,120];
+  const sl=[92,85,78,88,95,98,96,94,97,98,93,87,95,99,99,98];
+  const pad={l:44,r:16,t:16,b:32};
+  const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  c.fillStyle='#fafcfa';c.fillRect(0,0,W,H);
+  const maxD=Math.max(...demand);
+  // grid
+  for(let i=0;i<=4;i++){const y=pad.t+iH*i/4;c.strokeStyle='#D4E0D8';c.lineWidth=1;c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke();c.fillStyle='#6B8070';c.font='10px Inter';c.textAlign='right';c.fillText(Math.round((1-i/4)*maxD),pad.l-4,y+3)}
+  // bars
+  const bw=(iW/hours.length)*.65;
+  hours.forEach((h,i)=>{
+    const x=pad.l+(i+.175)*iW/hours.length;
+    const bh=(demand[i]/maxD)*iH;
+    const col=sl[i]<85?'#E74C3C':sl[i]<92?'#F0A500':'#2ECC71';
+    c.fillStyle=col+'55';c.fillRect(x,pad.t+iH-bh,bw,bh);
+    c.fillStyle='#6B8070';c.font='9px Inter';c.textAlign='center';c.fillText(h+':00',x+bw/2,H-6);
+  });
+  // SL line
+  c.beginPath();hours.forEach((h,i)=>{const x=pad.l+(i+.5)*iW/hours.length,y=pad.t+iH-(sl[i]/100)*iH;i===0?c.moveTo(x,y):c.lineTo(x,y)});
+  c.strokeStyle='#2ECC71';c.lineWidth=2.5;c.stroke();
+  // dots
+  hours.forEach((h,i)=>{const x=pad.l+(i+.5)*iW/hours.length,y=pad.t+iH-(sl[i]/100)*iH;c.beginPath();c.arc(x,y,3.5,0,Math.PI*2);c.fillStyle='#fff';c.fill();c.strokeStyle='#2ECC71';c.lineWidth=2;c.stroke()});
+  // SL right axis
+  c.fillStyle='#2ECC71';c.font='bold 10px Inter';c.textAlign='left';c.fillText('SL%',W-pad.r+2,pad.t+4);
+}
+function drawSocChart(){
+  const cv=document.getElementById('socChart');if(!cv)return;
+  const c=cv.getContext('2d'),W=cv.offsetWidth,H=cv.offsetHeight;
+  cv.width=W;cv.height=H;
+  const soc=[100,88,72,64,58,65,74,68,55,50,48,56,60,52,44,38,34,42,50,45,38,30,36,28];
+  const pad={l:36,r:16,t:12,b:28};const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  c.fillStyle='#fafcfa';c.fillRect(0,0,W,H);
+  for(let i=0;i<=4;i++){const y=pad.t+iH*i/4;c.strokeStyle='#D4E0D8';c.lineWidth=1;c.beginPath();c.moveTo(pad.l,y);c.lineTo(W-pad.r,y);c.stroke();c.fillStyle='#6B8070';c.font='9px Inter';c.textAlign='right';c.fillText((100-i*25)+'%',pad.l-3,y+3)}
+  // danger zone
+  const dangerY=pad.t+iH*(1-20/100);c.fillStyle='rgba(231,76,60,.08)';c.fillRect(pad.l,dangerY,iW,pad.t+iH-dangerY);
+  // threshold line
+  c.beginPath();c.moveTo(pad.l,dangerY);c.lineTo(W-pad.r,dangerY);c.strokeStyle='#E74C3C';c.lineWidth=1.5;c.setLineDash([4,3]);c.stroke();c.setLineDash([]);
+  c.fillStyle='#E74C3C';c.font='9px Inter';c.textAlign='left';c.fillText('SoC min 20%',pad.l+4,dangerY-3);
+  // fill gradient
+  const grad=c.createLinearGradient(0,pad.t,0,pad.t+iH);
+  grad.addColorStop(0,'rgba(46,204,113,.35)');grad.addColorStop(1,'rgba(46,204,113,.02)');
+  c.beginPath();c.moveTo(pad.l,pad.t+iH);
+  soc.forEach((v,i)=>{const x=pad.l+i*iW/(soc.length-1),y=pad.t+iH-(v/100)*iH;i===0?c.lineTo(x,y):c.lineTo(x,y)});
+  c.lineTo(W-pad.r,pad.t+iH);c.closePath();c.fillStyle=grad;c.fill();
+  // line
+  c.beginPath();soc.forEach((v,i)=>{const x=pad.l+i*iW/(soc.length-1),y=pad.t+iH-(v/100)*iH;i===0?c.moveTo(x,y):c.lineTo(x,y)});c.strokeStyle='#3BBFCE';c.lineWidth=2;c.stroke();
+}
+
+// ═══ INTERACTIONS ═══
+function selectScenario(el,name,demand){
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');
+  document.getElementById('demandSlider').value=demand;updateDemand(demand);
+  showNotif(`📋 Kịch bản: ${name} (${demand.toLocaleString()} lượt khách)`);
+}
+function updateSlider(id,val,unit){
+  document.getElementById(`val-${id}`).textContent=`${parseInt(val).toLocaleString()} ${unit}`;
+  if(id==='bus')document.getElementById('stat-buses').textContent=val;
+}
+function updateDemand(val){
+  const v=parseInt(val);document.getElementById('val-demand').textContent=v.toLocaleString();
+  const sl=Math.min(99,Math.max(60,97-Math.floor((v-35000)/10000)*2));document.getElementById('stat-sl').textContent=sl+'%';
+}
+function selectRoute(el,idx){
+  document.querySelectorAll('.route-item').forEach(r=>r.classList.remove('selected'));el.classList.add('selected');selectedRoute=idx;
+  document.getElementById('rightPanel').classList.add('open');
+  const r=ROUTES[idx];
+  document.getElementById('rpTitle').innerHTML=r.name+'<span class="rp-close" onclick="closePanel()">✕</span>';
+  document.getElementById('rpSL').innerHTML=`<span style="color:${r.color}">${r.sl}</span><span class="rp-metric-unit">%</span>`;
+  document.getElementById('rpDist').innerHTML=`${r.dist}<span class="rp-metric-unit"> km</span>`;
+  document.getElementById('rpTime').innerHTML=`${r.time}<span class="rp-metric-unit"> phút</span>`;
+  document.getElementById('rpCO2').innerHTML=`${r.co2}<span class="rp-metric-unit"> kg/vòng</span>`;
+  document.getElementById('stopList').innerHTML=r.stops.map((s,i)=>`
+    <div class="rp-stop"><div class="rp-stop-line">
+      <div class="rp-stop-circle" style="border-color:${r.color};${i===0||i===r.stops.length-1?'background:'+r.color:''}"></div>
+      ${i<r.stops.length-1?`<div class="rp-stop-tail" style="background:${r.color}"></div>`:''}
+    </div><div style="flex:1"><div class="rp-stop-name">${s.name}</div><div class="rp-stop-time">${s.time}</div></div></div>`).join('');
+}
+function closePanel(){document.getElementById('rightPanel').classList.remove('open')}
+function zoom(f){zoomLevel=Math.min(3,Math.max(.5,zoomLevel*f))}
+function resetView(){zoomLevel=1;panX=0;panY=0}
+function toggleLayer(layer){
+  if(layer==='buses'){showBuses=!showBuses;const b=document.getElementById('busToggle');b.style.background=showBuses?'var(--electric)':'';b.style.color=showBuses?'var(--forest)':''}
+  else if(layer==='stations'){showStations=!showStations;const b=document.getElementById('stationToggle');b.style.background=showStations?'var(--gold)':'';b.style.color=showStations?'#000':''}
+  else if(layer==='heat'){showHeatmap=!showHeatmap;const b=document.getElementById('heatToggle');b.style.background=showHeatmap?'rgba(231,76,60,.3)':''}
+}
+
+// ═══ OPTIMIZE ═══
+const runSteps=["Khởi tạo tập hành trình (NP = 50 tracks)...","Q-Learning: huấn luyện tác tử chọn Black Box...","Black Box 1: Route-Swap — hoán đổi thứ tự trạm...","Black Box 2: Hub-Insertion — tối ưu trạm sạc...","Black Box 3: Ruin & Recreate — tái thiết lộ trình...","Cập nhật Pareto front — lọc nghiệm không bị trội...","Kiểm chứng SimPy: mô phỏng tải cao điểm...","TOPSIS: chọn nghiệm tối ưu từ Pareto front...","Hoàn tất! Xuất kết quả và cập nhật bản đồ..."];
+function runOptimize(){
+  const ov=document.getElementById('runOverlay');ov.classList.add('show');
+  const bar=document.getElementById('runBar'),stepEl=document.getElementById('runStep'),iterEl=document.getElementById('runIter');
+  let step=0,iter=0;
+  const iv=setInterval(()=>{
+    iter+=Math.floor(Math.random()*18)+8;if(iter>=500)iter=500;
+    const pct=iter/5;bar.style.width=pct+'%';iterEl.textContent=`Vòng lặp: ${iter} / 500`;
+    const si=Math.floor((iter/500)*runSteps.length);if(si<runSteps.length&&si!==step){step=si;stepEl.textContent=runSteps[step]}
+    if(iter>=500){clearInterval(iv);setTimeout(()=>{ov.classList.remove('show');document.getElementById('stat-sl').textContent='96%';document.getElementById('stat-co2').textContent='57%';document.getElementById('stat-dist').textContent='46.8';document.getElementById('stat-iter').textContent='500';showNotif('✅ Tối ưu hoàn tất! Service level: 96%')},400)}
+  },120);
+}
+
+// ═══ TOOLTIP ═══
+const tooltip=document.getElementById('mapTooltip');
+const demandData={attraction:['1.200–1.800','5 phút'],depot:['800–2.400','3 phút'],stop:['200–600','2 phút'],charge:['Sạc 45 phút','20–40 phút']};
+canvas.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  let hit=null;LANDMARKS.forEach(lm=>{const[sx,sy]=toScreen(lm.x,lm.y);if(Math.hypot(mx-sx,my-sy)<18)hit=lm});
+  if(hit){document.getElementById('ttName').textContent=hit.name;document.getElementById('ttType').textContent={depot:'Đầu/cuối tuyến',attraction:'Điểm du lịch',stop:'Điểm dừng',charge:'Trạm sạc nhanh'}[hit.type];const d=demandData[hit.type]||['—','—'];document.getElementById('ttDemand').textContent=d[0];document.getElementById('ttTime').textContent=d[1];tooltip.style.left=(mx+16)+'px';tooltip.style.top=(my-20)+'px';tooltip.classList.add('show')}
+  else tooltip.classList.remove('show');
+});
+canvas.addEventListener('mouseleave',()=>tooltip.classList.remove('show'));
+
+// ═══ NOTIF ═══
+let nTimer;
+function showNotif(msg){const el=document.getElementById('notif');el.textContent=msg;el.classList.add('show');clearTimeout(nTimer);nTimer=setTimeout(()=>el.classList.remove('show'),3200)}
+
+// ═══ REPORT DATE ═══
+const d=new Date();document.getElementById('reportDate').textContent=`Xuất ngày: ${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+
+// ═══ INIT ═══
+initBuses();animate();
+setTimeout(()=>{const f=document.querySelector('.route-item');if(f)selectRoute(f,0)},600);
+</script>
+</body>
+</html>
